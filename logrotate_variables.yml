@@ -1,0 +1,20 @@
+# Purpose: Define PostgreSQL variables for logrotate configuration
+# Author: Anilkumar Sonawane
+# Date: April 28, 2025
+# Version: 1.0
+# Environment: Ansible deployment for PostgreSQL log rotation
+# Description: Provides variables for PostgreSQL user, group, environment, and
+#              directory paths used in logrotate configuration.
+
+---
+postgres_user: fapgss6283
+postgres_group: postgres
+postgres_version: 15
+postgres_port: 15444
+postgres_env: test
+postgres_db: pg_dbtest_anil
+pg_root_dir: "/data/{{ postgres_env }}/postgres/{{ postgres_version }}/{{ postgres_db }}"
+pg_data_dir: "{{ pg_root_dir }}/data"
+pg_log_dir: "{{ pg_root_dir }}/log"
+pg_root_code_dir: "/code/{{ postgres_env }}/postgres/{{ postgres_version }}/{{ postgres_db }}"
+pg_root_data_dir: "/data/{{ postgres_env }}/postgres/{{ postgres_version }}/{{ postgres_db }}"
