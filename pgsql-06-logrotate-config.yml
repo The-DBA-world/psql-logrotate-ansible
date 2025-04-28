@@ -3,8 +3,8 @@
 # Date: April 28, 2025
 # Version: 1.0
 # Environment: Ansible deployment for PostgreSQL log rotation
-# Description: Installs logrotate, loads variables from logrotate_config_deployment/logrotate_variables.yml,
-#              includes logrotate configuration tasks, and validates the setup.
+# Description: Installs logrotate, loads variables from logrotate_config_deployment/logrotate_config.yml,
+#              configures logrotate for PostgreSQL logs, sets permissions, and validates the setup.
 #              Designed to be dynamic and robust, requiring no manual updates.
 
 ---
@@ -12,7 +12,7 @@
   hosts: all
   become: yes
   vars_files:
-    - logrotate_config_deployment/logrotate_variables.yml
+    - logrotate_config_deployment/logrotate_config.yml
   tasks:
     - name: Ensure logrotate is installed
       package:
@@ -23,8 +23,58 @@
       delay: 5
       until: logrotate_install is success
 
-    - name: Include logrotate configuration tasks
-      include_tasks: logrotate_config_deployment/logrotate_config.yml
+    - name: Ensure PostgreSQL parent directory exists
+      file:
+        path: "{{ pg_root_dir }}"
+        state: directory
+        owner: "{{ postgres_user }}"
+        group: "{{ postgres_group }}"
+        mode: '0750'
+
+    - name: Ensure PostgreSQL log directory exists and has correct permissions
+      file:
+        path: "{{ pg_log_dir }}"
+        state: directory
+        owner: "{{ postgres_user }}"
+        group: "{{ postgres_group }}"
+        mode: '0750'
+
+    - name: Create logrotate configuration for PostgreSQL
+      copy:
+        dest: /etc/logrotate.d/postgresql
+        content: |
+          {{ pg_log_dir }}/*.log {
+              daily
+              rotate 7
+              compress
+              delaycompress
+              missingok
+              notifempty
+              create 0640 {{ postgres_user }} {{ postgres_group }}
+              postrotate
+                  /usr/bin/pkill -u {{ postgres_user }} -HUP || true
+              endscript
+          }
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Test logrotate configuration
+
+    - name: Find existing log files in PostgreSQL log directory
+      find:
+        paths: "{{ pg_log_dir }}"
+        patterns: "*.log"
+        file_type: file
+      register: log_files
+
+    - name: Ensure existing log files have correct permissions
+      file:
+        path: "{{ item.path }}"
+        owner: "{{ postgres_user }}"
+        group: "{{ postgres_group }}"
+        mode: '0640'
+      loop: "{{ log_files.files }}"
+      when: log_files.matched > 0
 
   handlers:
     - name: Test logrotate configuration
