@@ -31,16 +31,32 @@
 
 - name: Ensure PostgreSQL log directory exists and has correct permissions
   file:
+    path: "{{ pg_root_dir }}"
+    state: directory
+    owner: "{{ postgres_user | default('postgres') }}"
+    group: "{{ postgres_group | default('postgres') }}"
+    mode: '0750'
+
+- name: Ensure PostgreSQL log directory exists and has correct permissions
+  file:
     path: "{{ pg_log_dir }}"
     state: directory
     owner: "{{ postgres_user | default('postgres') }}"
     group: "{{ postgres_group | default('postgres') }}"
     mode: '0750'
 
+- name: Find existing log files in PostgreSQL log directory
+  find:
+    paths: "{{ pg_log_dir }}"
+    patterns: "*.log"
+    file_type: file
+  register: log_files
+
 - name: Ensure existing log files have correct permissions
   file:
-    path: "{{ pg_log_dir }}/*.log"
+    path: "{{ item.path }}"
     owner: "{{ postgres_user | default('postgres') }}"
     group: "{{ postgres_group | default('postgres') }}"
     mode: '0640'
-  ignore_errors: yes  # In case no logs exist yet
+  loop: "{{ log_files.files }}"
+  when: log_files.matched > 0
