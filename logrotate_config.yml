@@ -5,44 +5,42 @@
 # Environment: Ansible deployment for PostgreSQL log rotation
 # Description: Sets up logrotate to rotate PostgreSQL logs daily, retain 7 days,
 #              compress old logs, and apply correct permissions using variables
-#              from logrotate_variables.yml.
+#              from logrotate_config_deployment/logrotate_variables.yml.
 
 ---
-- name: Configure logrotate for PostgreSQL
-  tasks:
-    - name: Create logrotate configuration for PostgreSQL
-      copy:
-        dest: /etc/logrotate.d/postgresql
-        content: |
-          {{ pg_log_dir }}/*.log {
-              daily
-              rotate 7
-              compress
-              delaycompress
-              missingok
-              notifempty
-              create 0640 {{ postgres_user }} {{ postgres_group }}
-              postrotate
-                  /usr/bin/pkill -u {{ postgres_user }} -HUP || true
-              endscript
-          }
-        owner: root
-        group: root
-        mode: '0644'
-      notify: Test logrotate configuration
+- name: Create logrotate configuration for PostgreSQL
+  copy:
+    dest: /etc/logrotate.d/postgresql
+    content: |
+      {{ pg_log_dir }}/*.log {
+          daily
+          rotate 7
+          compress
+          delaycompress
+          missingok
+          notifempty
+          create 0640 {{ postgres_user }} {{ postgres_group }}
+          postrotate
+              /usr/bin/pkill -u {{ postgres_user }} -HUP || true
+          endscript
+      }
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Test logrotate configuration
 
-    - name: Ensure PostgreSQL log directory exists and has correct permissions
-      file:
-        path: "{{ pg_log_dir }}"
-        state: directory
-        owner: "{{ postgres_user | default('postgres') }}"
-        group: "{{ postgres_group | default('postgres') }}"
-        mode: '0750'
+- name: Ensure PostgreSQL log directory exists and has correct permissions
+  file:
+    path: "{{ pg_log_dir }}"
+    state: directory
+    owner: "{{ postgres_user | default('postgres') }}"
+    group: "{{ postgres_group | default('postgres') }}"
+    mode: '0750'
 
-    - name: Ensure existing log files have correct permissions
-      file:
-        path: "{{ pg_log_dir }}/*.log"
-        owner: "{{ postgres_user | default('postgres') }}"
-        group: "{{ postgres_group | default('postgres') }}"
-        mode: '0640'
-      ignore_errors: yes  # In case no logs exist yet
+- name: Ensure existing log files have correct permissions
+  file:
+    path: "{{ pg_log_dir }}/*.log"
+    owner: "{{ postgres_user | default('postgres') }}"
+    group: "{{ postgres_group | default('postgres') }}"
+    mode: '0640'
+  ignore_errors: yes  # In case no logs exist yet
