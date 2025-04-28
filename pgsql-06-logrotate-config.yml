@@ -1,0 +1,40 @@
+# Purpose: Deploy logrotate configuration for PostgreSQL across target hosts
+# Author: Anilkumar Sonawane
+# Date: April 28, 2025
+# Version: 1.0
+# Environment: Ansible deployment for PostgreSQL log rotation
+# Description: Installs logrotate, loads variables from logrotate_variables.yml,
+#              includes logrotate configuration tasks, and validates the setup.
+#              Designed to be dynamic and robust, requiring no manual updates.
+
+---
+- name: Deploy logrotate configuration for PostgreSQL
+  hosts: all
+  become: yes
+  vars_files:
+    - logrotate_config_deployment/logrotate_variables.yml
+  tasks:
+    - name: Ensure logrotate is installed
+      package:
+        name: logrotate
+        state: present
+      register: logrotate_install
+      retries: 3
+      delay: 5
+      until: logrotate_install is success
+
+    - name: Include logrotate configuration tasks
+      include_tasks: logrotate_config_deployment/logrotate_config.yml
+
+  handlers:
+    - name: Test logrotate configuration
+      command: /usr/sbin/logrotate -d /etc/logrotate.d/postgresql
+      changed_when: false
+      failed_when: false
+      register: logrotate_test
+      listen: Test logrotate configuration
+
+    - name: Fail if logrotate configuration is invalid
+      fail:
+        msg: "Logrotate configuration test failed: {{ logrotate_test.stderr }}"
+      when: logrotate_test.rc != 0
