@@ -1,0 +1,1 @@
+# psql-logrotate-ansible
