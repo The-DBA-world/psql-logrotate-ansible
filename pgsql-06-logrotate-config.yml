@@ -3,7 +3,7 @@
 # Date: April 28, 2025
 # Version: 1.0
 # Environment: Ansible deployment for PostgreSQL log rotation
-# Description: Installs logrotate, loads variables from logrotate_variables.yml,
+# Description: Installs logrotate, loads variables from logrotate_config_deployment/logrotate_variables.yml,
 #              includes logrotate configuration tasks, and validates the setup.
 #              Designed to be dynamic and robust, requiring no manual updates.
 
